@@ -1,35 +1,67 @@
 package com.proyecto.straightupapp.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.proyecto.straightupapp.ui.screens.DashboardScreen
-import com.proyecto.straightupapp.ui.screens.DeviceControlScreen
+import com.proyecto.straightupapp.ui.screens.*
+import com.proyecto.straightupapp.viewmodel.MainViewModel
 
 @Composable
 fun StraightUpApp() {
     val navController = rememberNavController()
+    val mainViewModel: MainViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = "dashboard") {
+    NavHost(navController = navController, startDestination = "home") {
 
-        composable("dashboard") {
-            DashboardScreen(
-                onGoToDeviceControl = { navController.navigate("deviceControl") },
-                onHomeClick = { /* Acción Home */ },
-                onStatsClick = { /* Acción Stats */ },
-                onExerciseClick = { /* Acción Ejercicios */ },
-                onProfileClick = { /* Acción Perfil */ }
+        composable("home") {
+            HomeScreen(
+                onNavigateToDevice = { navController.navigate("deviceControl") },
+                onNavigateToProgress = { navController.navigate("progress") },
+                onNavigateToAchievements = { navController.navigate("achievements") },
+                onNavigateToSettings = { navController.navigate("settings") },
+                viewModel = mainViewModel
             )
         }
 
         composable("deviceControl") {
             DeviceControlScreen(
-                onBack = { navController.popBackStack() },
-                onHomeClick = { navController.navigate("dashboard") },
-                onStatsClick = { /* Acción Stats */ },
-                onExerciseClick = { /* Acción Ejercicios */ },
-                onProfileClick = { /* Acción Perfil */ }
+                bleManager = mainViewModel.bleManager,
+                onNavigateToSettings = { navController.navigate("settings") }
+            )
+        }
+
+        composable("progress") {
+            ProgressScreen(
+                onNavigateToHome = { navController.navigate("home") {
+                    popUpTo("home") { inclusive = true }
+                }},
+                onNavigateToAchievements = { navController.navigate("achievements") },
+                onNavigateToSettings = { navController.navigate("settings") },
+                viewModel = mainViewModel
+            )
+        }
+
+        composable("achievements") {
+            AchievementsScreen(
+                onNavigateToHome = { navController.navigate("home") {
+                    popUpTo("home") { inclusive = true }
+                }},
+                onNavigateToProgress = { navController.navigate("progress") },
+                onNavigateToSettings = { navController.navigate("settings") },
+                viewModel = mainViewModel
+            )
+        }
+
+        composable("settings") {
+            SettingsScreen(
+                onNavigateToHome = { navController.navigate("home") {
+                    popUpTo("home") { inclusive = true }
+                }},
+                onNavigateToProgress = { navController.navigate("progress") },
+                onNavigateToAchievements = { navController.navigate("achievements") },
+                viewModel = mainViewModel
             )
         }
     }

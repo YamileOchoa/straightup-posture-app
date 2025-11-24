@@ -1,21 +1,19 @@
 package com.proyecto.straightupapp.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BluetoothConnected
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.proyecto.straightupapp.ui.components.BottomBar
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.proyecto.straightupapp.viewmodel.MainViewModel
+import com.proyecto.straightupapp.ui.components.BottomNavigationBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onGoToDeviceControl: () -> Unit,
@@ -24,112 +22,156 @@ fun DashboardScreen(
     onExerciseClick: () -> Unit,
     onProfileClick: () -> Unit
 ) {
+    val viewModel: MainViewModel = viewModel()
+    val isConnected by viewModel.bleManager.isConnected.collectAsState()
+    val todayStats by viewModel.todayStats.collectAsState()
+    val isMonitoring by viewModel.isMonitoring.collectAsState()
+
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("StraightUp") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            )
+        },
         bottomBar = {
-            BottomBar(
+            BottomNavigationBar(
+                selectedItem = 0,
                 onHomeClick = onHomeClick,
                 onStatsClick = onStatsClick,
                 onExerciseClick = onExerciseClick,
                 onProfileClick = onProfileClick
             )
-        },
-        content = { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFF5F6FA))
-                    .padding(padding) // respeta el espacio del BottomBar
-            ) {
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Estado de conexión
+            ConnectionStatusCard(isConnected = isConnected)
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Card Clip conectado
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    shadowElevation = 2.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+            // Botón para ir a control de dispositivo
+            if (!isConnected) {
+                Button(
+                    onClick = onGoToDeviceControl,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Clip Conectado", fontWeight = FontWeight.Bold)
-                            Text(
-                                "Dispositivo activo y monitoreando",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
-                        }
-                        Icon(
-                            Icons.Default.BluetoothConnected,
-                            contentDescription = null,
-                            tint = Color(0xFF0ECF7A)
-                        )
-                    }
+                    Icon(Icons.Default.Bluetooth, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Conectar Dispositivo")
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            // Estadísticas del día
+            if (isConnected) {
+                StatsCard(stats = todayStats)
 
-                AsyncImage(
-                    model = "https://cdn-icons-png.flaticon.com/512/5233/5233713.png",
-                    contentDescription = "Posture Character",
-                    modifier = Modifier
-                        .size(200.dp)
-                        .align(Alignment.CenterHorizontally)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Postura: Buena",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-
-                Text(
-                    text = "¡Te ves genial!",
-                    fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Row(
+                // Botón de monitoreo
+                Button(
+                    onClick = {
+                        if (isMonitoring) viewModel.stopMonitoring()
+                        else viewModel.startMonitoring()
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isMonitoring)
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    InfoCard(title = "4h 15m", subtitle = "Postura Buena", icon = "⏱")
-                    InfoCard(title = "2°", subtitle = "Ángulo de Inclinación", icon = "📈")
+                    Icon(
+                        if (isMonitoring) Icons.Default.Stop else Icons.Default.PlayArrow,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (isMonitoring) "Detener Monitoreo" else "Iniciar Monitoreo")
                 }
             }
         }
-    )
+    }
 }
 
 @Composable
-fun RowScope.InfoCard(title: String, subtitle: String, icon: String) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 3.dp,
-        modifier = Modifier
-            .weight(1f)
-            .padding(horizontal = 4.dp)
+private fun ConnectionStatusCard(isConnected: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isConnected)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.errorContainer
+        )
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(icon, fontSize = 26.sp)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(subtitle, fontSize = 12.sp, color = Color.Gray)
+            Icon(
+                imageVector = if (isConnected) Icons.Default.CheckCircle else Icons.Default.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp)
+            )
+            Column {
+                Text(
+                    text = if (isConnected) "Conectado" else "Desconectado",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (isConnected)
+                        "Dispositivo ESP32 conectado"
+                    else
+                        "Conecta tu dispositivo para empezar",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun StatsCard(stats: com.proyecto.straightupapp.viewmodel.DailyStats) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Estadísticas de Hoy",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                StatItem("✅ Correctas", stats.goodPostureCount.toString())
+                StatItem("⚠️ Alertas", stats.badPostureCount.toString())
+                StatItem("📊 Score", "${stats.postureScore}%")
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }

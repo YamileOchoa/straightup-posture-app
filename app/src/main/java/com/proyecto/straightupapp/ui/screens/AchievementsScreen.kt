@@ -1,85 +1,125 @@
 package com.proyecto.straightupapp.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.proyecto.straightupapp.ui.components.BottomBar
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.proyecto.straightupapp.ui.components.BottomNavigationBar
+import com.proyecto.straightupapp.viewmodel.Achievement
+import com.proyecto.straightupapp.viewmodel.MainViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AchievementsScreen(
-    onHomeClick: () -> Unit,
-    onStatsClick: () -> Unit,
-    onExerciseClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onNavigateToHome: () -> Unit,
+    onNavigateToProgress: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    viewModel: MainViewModel = viewModel()
 ) {
+    val achievements by viewModel.achievements.collectAsState()
+
+    // Logros predefinidos
+    val allAchievements = listOf(
+        Achievement("first_session", "Primera Sesión", "Inicia tu viaje", "🎉"),
+        Achievement("perfect_posture", "Postura Perfecta", "10 correctas sin alertas", "⭐"),
+        Achievement("posture_warrior", "Guerrero", "50 posturas correctas", "🏆"),
+        Achievement("week_streak", "Racha Semanal", "7 días seguidos", "🔥"),
+        Achievement("hundred_club", "Club de los 100", "100 posturas correctas", "💯"),
+        Achievement("zen_master", "Maestro Zen", "Score 95% o más", "🧘")
+    )
+
+    val unlockedIds = achievements.map { it.id }.toSet()
+
     Scaffold(
-        bottomBar = {
-            BottomBar(
-                onHomeClick = onHomeClick,
-                onStatsClick = onStatsClick,
-                onExerciseClick = onExerciseClick,
-                onProfileClick = onProfileClick
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Logros",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
-        content = { padding ->
-            Column(
+        bottomBar = {
+            BottomNavigationBar(
+                selectedItem = 2,
+                onHomeClick = onNavigateToHome,
+                onStatsClick = onNavigateToProgress,
+                onExerciseClick = {},
+                onProfileClick = onNavigateToSettings
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Resumen
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFF5F6FA))
-                    .padding(padding)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Logros y Recompensas",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
-
-                // Card: Nivel
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    shadowElevation = 2.dp,
-                    modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Profesional de Postura - Nivel 5", fontWeight = FontWeight.Bold)
-                        Text("12,500 puntos", fontSize = 14.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = 0.75f,
-                            color = Color(0xFFF7E96B),
-                            modifier = Modifier.fillMaxWidth()
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${achievements.size}",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        Text("750/1000 puntos para el siguiente nivel", fontSize = 12.sp, color = Color.Gray)
+                        Text(
+                            text = "Desbloqueados",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    Divider(
+                        modifier = Modifier
+                            .height(50.dp)
+                            .width(1.dp)
+                    )
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${allAchievements.size}",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "Totales",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Aquí agregarías las insignias y los botones de iniciar ejercicios
             }
         }
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AchievementsScreenPreview() {
-    AchievementsScreen(
-        onHomeClick = {},
-        onStatsClick = {},
-        onExerciseClick = {},
-        onProfileClick = {}
-    )
+    }
 }
