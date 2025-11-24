@@ -28,6 +28,7 @@ fun StraightUpApp() {
         composable("deviceControl") {
             DeviceControlScreen(
                 bleManager = mainViewModel.bleManager,
+                viewModel = mainViewModel,  // ← AGREGAR ESTA LÍNEA
                 onNavigateToSettings = { navController.navigate("settings") }
             )
         }

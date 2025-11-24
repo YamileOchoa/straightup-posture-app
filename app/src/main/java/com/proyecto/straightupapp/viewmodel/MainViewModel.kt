@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-// 📁 viewmodel/MainViewModel.kt
+// 📁 viewmodel/MainViewModel.kt - VERSIÓN CORREGIDA
 // ═══════════════════════════════════════════════════════════════════
 package com.proyecto.straightupapp.viewmodel
 
@@ -61,6 +61,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             bleManager.isConnected.collect { connected ->
                 if (!connected) {
                     _postureState.value = PostureState.WAITING
+                    _isMonitoring.value = false  // ✅ Detener monitoreo si se desconecta
                 } else if (_postureState.value == PostureState.WAITING) {
                     _postureState.value = PostureState.GOOD
                 }
@@ -79,6 +80,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun handleBadPosture() {
+        // ✅ VERIFICAR SI ESTÁ MONITOREANDO
+        if (!_isMonitoring.value) {
+            android.util.Log.d("MainViewModel", "⏸️ Alerta ignorada: monitoreo inactivo")
+            return  // Ignorar alertas si no está monitoreando
+        }
+
         _postureState.value = PostureState.BAD
 
         viewModelScope.launch {
@@ -115,6 +122,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun handleGoodPosture() {
+        // ✅ VERIFICAR SI ESTÁ MONITOREANDO
+        if (!_isMonitoring.value) {
+            android.util.Log.d("MainViewModel", "⏸️ Evento OK ignorado: monitoreo inactivo")
+            return  // Ignorar eventos si no está monitoreando
+        }
+
         _postureState.value = PostureState.GOOD
 
         viewModelScope.launch {
@@ -310,6 +323,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // ✅ FUNCIONES DE CONTROL DE MONITOREO - CORREGIDAS
+    // ═══════════════════════════════════════════════════════════════
 
     fun startMonitoring() {
         if (bleManager.isConnected.value) {
@@ -317,6 +332,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Enviar comando al ESP32 para activar monitoreo
             bleManager.writeString("START_MONITORING")
             notificationHelper.showMonitoringNotification()
+            android.util.Log.d("MainViewModel", "▶️ Monitoreo ACTIVADO")
         }
     }
 
@@ -325,7 +341,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Enviar comando al ESP32 para desactivar monitoreo
         bleManager.writeString("STOP_MONITORING")
         notificationHelper.cancelMonitoringNotification()
+        android.util.Log.d("MainViewModel", "⏸️ Monitoreo DETENIDO")
     }
+
+    // ✅ NUEVA FUNCIÓN: Apagar dispositivo de forma segura
+    fun shutdownDevice() {
+        android.util.Log.d("MainViewModel", "🔴 Iniciando apagado seguro del dispositivo...")
+
+        // 1. Detener monitoreo PRIMERO
+        if (_isMonitoring.value) {
+            stopMonitoring()
+        }
+
+        // 2. Pequeña pausa para asegurar que se procese STOP_MONITORING
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(300) // 300ms de pausa
+
+            // 3. Enviar comando SHUTDOWN
+            bleManager.writeString("SHUTDOWN")
+            android.util.Log.d("MainViewModel", "🔴 Comando SHUTDOWN enviado")
+        }
+    }
+
+    // ✅ NUEVA FUNCIÓN: Reiniciar dispositivo
+    fun restartDevice() {
+        android.util.Log.d("MainViewModel", "🔄 Reiniciando dispositivo...")
+
+        // Detener monitoreo antes de reiniciar
+        if (_isMonitoring.value) {
+            stopMonitoring()
+        }
+
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(200)
+            bleManager.writeString("RESTART")
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
 
     override fun onCleared() {
         super.onCleared()

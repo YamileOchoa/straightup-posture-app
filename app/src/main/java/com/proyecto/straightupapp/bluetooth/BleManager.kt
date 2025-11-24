@@ -343,7 +343,46 @@ class BleManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     fun disconnect() {
         addToLog("🔌 Desconectando...")
+
+        // 1. Deshabilitar notificaciones ANTES de desconectar
+        notifyCharacteristic?.let { char ->
+            try {
+                bluetoothGatt?.setCharacteristicNotification(char, false)
+
+                val descriptor = char.getDescriptor(CLIENT_CHARACTERISTIC_CONFIG_UUID)
+                descriptor?.let {
+                    it.value = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+                    bluetoothGatt?.writeDescriptor(it)
+                }
+            } catch (e: Exception) {
+                addToLog("⚠️ Error al deshabilitar notificaciones: ${e.message}")
+            }
+        }
+
+        // 2. Pequeña pausa para que se procese
+        Thread.sleep(200)
+
+        // 3. Desconectar
         bluetoothGatt?.disconnect()
+
+        // 4. CRÍTICO: Esperar a que Android procese la desconexión
+        Thread.sleep(300)
+
+        // 5. CRÍTICO: Limpiar caché BLE (fuerza a Android a re-escanear)
+        try {
+            val refreshMethod = bluetoothGatt?.javaClass?.getMethod("refresh")
+            refreshMethod?.invoke(bluetoothGatt)
+            addToLog("🔄 Caché BLE limpiado")
+        } catch (e: Exception) {
+            addToLog("⚠️ No se pudo limpiar caché: ${e.message}")
+        }
+
+        // 6. Cerrar conexión GATT completamente
+        bluetoothGatt?.close()
+        bluetoothGatt = null
+        notifyCharacteristic = null
+
+        addToLog("✅ Desconexión completa")
     }
 
     @SuppressLint("MissingPermission")

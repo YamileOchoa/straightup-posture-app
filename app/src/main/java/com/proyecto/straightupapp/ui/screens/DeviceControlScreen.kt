@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-// 📁 ui/screens/DeviceControlScreen.kt - CON CONTROL DE ENCENDIDO
+// 📁 ui/screens/DeviceControlScreen.kt - CON CONTROL DE ENCENDIDO CORREGIDO
 // ═══════════════════════════════════════════════════════════════════
 package com.proyecto.straightupapp.ui.screens
 
@@ -20,11 +20,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.proyecto.straightupapp.bluetooth.BleManager
 import com.proyecto.straightupapp.bluetooth.ScanResultStatus
+import com.proyecto.straightupapp.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceControlScreen(
     bleManager: BleManager,
+    viewModel: MainViewModel,  // ✅ Agregado parámetro
     onNavigateToSettings: () -> Unit
 ) {
     val isScanning by bleManager.isScanning.collectAsState()
@@ -186,7 +188,7 @@ fun DeviceControlScreen(
         }
     }
 
-    // Diálogo de confirmación para acciones de poder
+    // ✅ Diálogo de confirmación para acciones de poder - CORREGIDO
     if (showPowerDialog) {
         AlertDialog(
             onDismissRequest = { showPowerDialog = false },
@@ -222,10 +224,11 @@ fun DeviceControlScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        // ✅ CAMBIO PRINCIPAL: Usar funciones del ViewModel
                         if (powerAction == "shutdown") {
-                            bleManager.writeString("SHUTDOWN")
+                            viewModel.shutdownDevice()  // ← Apagado seguro
                         } else {
-                            bleManager.writeString("RESTART")
+                            viewModel.restartDevice()   // ← Reinicio seguro
                         }
                         showPowerDialog = false
                     },
