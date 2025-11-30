@@ -359,30 +359,27 @@ class BleManager(private val context: Context) {
             }
         }
 
-        // 2. Pequeña pausa para que se procese
-        Thread.sleep(200)
-
-        // 3. Desconectar
+        // 2. Desconectar inmediatamente
         bluetoothGatt?.disconnect()
 
-        // 4. CRÍTICO: Esperar a que Android procese la desconexión
-        Thread.sleep(300)
+        // 3. Programar limpieza después (en background)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            try {
+                // Limpiar caché BLE
+                val refreshMethod = bluetoothGatt?.javaClass?.getMethod("refresh")
+                refreshMethod?.invoke(bluetoothGatt)
+                addToLog("🔄 Caché BLE limpiado")
+            } catch (e: Exception) {
+                addToLog("⚠️ No se pudo limpiar caché: ${e.message}")
+            }
 
-        // 5. CRÍTICO: Limpiar caché BLE (fuerza a Android a re-escanear)
-        try {
-            val refreshMethod = bluetoothGatt?.javaClass?.getMethod("refresh")
-            refreshMethod?.invoke(bluetoothGatt)
-            addToLog("🔄 Caché BLE limpiado")
-        } catch (e: Exception) {
-            addToLog("⚠️ No se pudo limpiar caché: ${e.message}")
-        }
+            // Cerrar conexión GATT completamente
+            bluetoothGatt?.close()
+            bluetoothGatt = null
+            notifyCharacteristic = null
 
-        // 6. Cerrar conexión GATT completamente
-        bluetoothGatt?.close()
-        bluetoothGatt = null
-        notifyCharacteristic = null
-
-        addToLog("✅ Desconexión completa")
+            addToLog("✅ Desconexión completa")
+        }, 500) // 500ms después
     }
 
     @SuppressLint("MissingPermission")
