@@ -327,47 +327,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // ═══════════════════════════════════════════════════════════════
 
     fun startMonitoring() {
+        android.util.Log.d("MainViewModel", "🎯 startMonitoring() LLAMADA")
+        android.util.Log.d("MainViewModel", "   isConnected: ${bleManager.isConnected.value}")
+
         if (bleManager.isConnected.value) {
             _isMonitoring.value = true
-            // Enviar comando al ESP32 para activar monitoreo
             bleManager.writeString("START_MONITORING")
             notificationHelper.showMonitoringNotification()
-            android.util.Log.d("MainViewModel", "▶️ Monitoreo ACTIVADO")
+            android.util.Log.d("MainViewModel", "   ✅ Monitoreo ACTIVADO - Comando enviado")
+        } else {
+            android.util.Log.e("MainViewModel", "   ❌ NO CONECTADO - Monitoreo NO activado")
         }
     }
 
     fun stopMonitoring() {
+        android.util.Log.d("MainViewModel", "🎯 stopMonitoring() LLAMADA")
+
         _isMonitoring.value = false
-        // Enviar comando al ESP32 para desactivar monitoreo
         bleManager.writeString("STOP_MONITORING")
         notificationHelper.cancelMonitoringNotification()
-        android.util.Log.d("MainViewModel", "⏸️ Monitoreo DETENIDO")
+        android.util.Log.d("MainViewModel", "   ✅ Monitoreo DETENIDO - Comando enviado")
     }
 
-    // ✅ NUEVA FUNCIÓN: Apagar dispositivo de forma segura
     fun shutdownDevice() {
-        android.util.Log.d("MainViewModel", "🔴 Iniciando apagado seguro del dispositivo...")
+        android.util.Log.d("MainViewModel", "🎯 shutdownDevice() LLAMADA")
 
-        // 1. Detener monitoreo PRIMERO
         if (_isMonitoring.value) {
+            android.util.Log.d("MainViewModel", "   ⏸️ Deteniendo monitoreo primero...")
             stopMonitoring()
         }
 
-        // 2. Pequeña pausa para asegurar que se procese STOP_MONITORING
         viewModelScope.launch {
-            kotlinx.coroutines.delay(300) // 300ms de pausa
-
-            // 3. Enviar comando SHUTDOWN
+            kotlinx.coroutines.delay(300)
             bleManager.writeString("SHUTDOWN")
-            android.util.Log.d("MainViewModel", "🔴 Comando SHUTDOWN enviado")
+            android.util.Log.d("MainViewModel", "   🔴 Comando SHUTDOWN enviado")
         }
     }
 
-    // ✅ NUEVA FUNCIÓN: Reiniciar dispositivo
     fun restartDevice() {
-        android.util.Log.d("MainViewModel", "🔄 Reiniciando dispositivo...")
+        android.util.Log.d("MainViewModel", "🎯 restartDevice() LLAMADA")
 
-        // Detener monitoreo antes de reiniciar
         if (_isMonitoring.value) {
             stopMonitoring()
         }
@@ -375,6 +374,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             kotlinx.coroutines.delay(200)
             bleManager.writeString("RESTART")
+            android.util.Log.d("MainViewModel", "   🔄 Comando RESTART enviado")
         }
     }
 
